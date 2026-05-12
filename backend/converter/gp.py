@@ -22,7 +22,33 @@ def _nearest_duration_value(ticks: int) -> int:
     for tick_val, dur_val in _DURATION_TABLE:
         if ticks >= tick_val * 0.75:
             return dur_val
-    return 16
+    return 32  # 테이블 전체를 통과한 경우 32분음표(가장 짧은 값)
+
+
+def _find_prev_bend(notes: list[TabNote], current_idx: int, current: TabNote) -> bool:
+    """current 직전에 같은 string의 벤드 노트가 있는지 확인."""
+    for j in range(current_idx - 1, -1, -1):
+        prev = notes[j]
+        if prev.col < current.col and prev.string_idx == current.string_idx:
+            return prev.technique in ('b', 'B')
+        if prev.col < current.col:
+            break
+    return False
+
+
+def _preprocess_notes(notes: list[TabNote]) -> list[TabNote]:
+    """벤드 뒤 목표 음정 노트를 제거. 5b7에서 7은 별도 노트가 아닌 벤드 타겟."""
+    result = []
+    sorted_notes = sorted(notes, key=lambda n: (n.col, n.string_idx))
+
+    for i, note in enumerate(sorted_notes):
+        if note.technique == '':
+            # 직전 컬럼에 같은 string의 벤드 노트가 있으면 스킵
+            if _find_prev_bend(sorted_notes, i, note):
+                continue
+        result.append(note)
+
+    return result
 
 
 def build_song(all_measures: list[list[TabNote]], info: GuitarInfo) -> guitarpro.Song:
@@ -38,6 +64,8 @@ def build_song(all_measures: list[list[TabNote]], info: GuitarInfo) -> guitarpro
     track.name = "Guitar"
     track.strings = [guitarpro.GuitarString(i + 1, v) for i, v in enumerate(tuning)]
     track.channel.instrument = 25  # Acoustic Guitar (steel)
+    # capo는 guitarpro.Track에 전용 필드가 없어 현재 미지원
+    # info.capo 값은 GP 파일에 반영되지 않음
 
     # 기본 MeasureHeader/Measure 제거 후 새로 구성
     song.measureHeaders.clear()
@@ -70,6 +98,7 @@ def _fill_voice(
     ticks_per_measure: int,
     measure_start: int,
 ) -> None:
+    notes = _preprocess_notes(notes)  # 벤드 타겟 노트 제거
     if not notes:
         beat = guitarpro.Beat(voice)
         beat.start = measure_start
@@ -79,6 +108,8 @@ def _fill_voice(
         return
 
     unique_cols = sorted(set(n.col for n in notes))
+    # col은 마디 내 상대 위치로 beat 순서 결정에만 사용.
+    # beat 간 간격은 균등 분배 (col 간격 비율 미사용).
     n_beats = len(unique_cols)
     ticks_per_beat = max(ticks_per_measure // n_beats, 120)
     dur_value = _nearest_duration_value(ticks_per_beat)
@@ -138,8 +169,7 @@ def _apply_technique(note: guitarpro.Note, technique: str, palm_mute: bool) -> N
     elif technique == '~':
         note.effect.vibrato = True
     elif technique in ('T', 't'):
-        # tapping: hammer-on으로 근사
-        note.effect.hammer = True
+        note.effect.hammer = True  # tapping: NoteEffect에 전용 필드 없음, hammer-on으로 근사
 
 
 def write_gp(song: guitarpro.Song, output_path: str) -> None:

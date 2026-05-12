@@ -47,7 +47,8 @@ def test_build_song_notes_present():
 
 def test_write_gp_produces_valid_file():
     song = build_song([_simple_measure()], GuitarInfo())
-    path = tempfile.mktemp(suffix=".gp5")
+    with tempfile.NamedTemporaryFile(suffix=".gp5", delete=False) as f:
+        path = f.name
     write_gp(song, path)
     assert os.path.exists(path)
     loaded = guitarpro.parse(path)
