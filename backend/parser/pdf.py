@@ -10,16 +10,14 @@ class PageData:
 
 
 def extract_pages(pdf_path: str) -> list[PageData]:
-    doc = fitz.open(pdf_path)
-    if doc.is_encrypted:
-        doc.close()
-        raise ValueError("암호화된 PDF는 지원하지 않습니다.")
-    pages = []
-    for i, page in enumerate(doc):
-        pages.append(PageData(
-            number=i,
-            text=page.get_text(),
-            words=page.get_text("words"),
-        ))
-    doc.close()
+    with fitz.open(pdf_path) as doc:
+        if doc.is_encrypted:
+            raise ValueError("암호화된 PDF는 지원하지 않습니다.")
+        pages = []
+        for i, page in enumerate(doc):
+            pages.append(PageData(
+                number=i,
+                text=page.get_text(),
+                words=page.get_text("words"),
+            ))
     return pages
