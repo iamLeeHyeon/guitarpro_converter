@@ -43,6 +43,7 @@ function setFile(file) {
   selectedFile = file;
   fileName.textContent = file.name;
   fileInfo.classList.remove("hidden");
+  formatSelect.classList.remove("hidden");
   convertBtn.classList.remove("hidden");
   errorBox.classList.add("hidden");
   downloadBtn.classList.add("hidden");
@@ -75,9 +76,16 @@ convertBtn.addEventListener("click", async () => {
 });
 
 function setState(state) {
-  progress.classList.toggle("hidden", state !== "converting");
-  downloadBtn.classList.toggle("hidden", state !== "done");
-  convertBtn.disabled = state === "converting";
+  const isConverting = state === "converting";
+  const isDone = state === "done";
+
+  progress.classList.toggle("hidden", !isConverting);
+  downloadBtn.classList.toggle("hidden", !isDone);
+  convertBtn.disabled = isConverting;
+
+  if (state === "idle" || state === "done") {
+    convertBtn.classList.remove("hidden");
+  }
 }
 
 function showError(msg) {
