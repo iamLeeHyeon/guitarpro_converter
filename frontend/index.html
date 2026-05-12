@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF → Guitar Pro</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🎸 PDF → Guitar Pro</h1>
+    <p class="subtitle">기타 악보 PDF를 업로드하면 GP 파일로 변환해드립니다</p>
+
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">📄</div>
+      <p>PDF 파일을 드래그하거나 클릭하여 업로드</p>
+      <input type="file" id="fileInput" accept=".pdf" hidden>
+    </div>
+
+    <div class="file-info hidden" id="fileInfo">
+      <span id="fileName"></span>
+    </div>
+
+    <div class="format-select" id="formatSelect">
+      <button class="fmt-btn active" data-fmt="gp5">.gp5</button>
+      <button class="fmt-btn" data-fmt="gpx">.gpx</button>
+      <button class="fmt-btn" data-fmt="gp">.gp</button>
+    </div>
+
+    <button class="convert-btn hidden" id="convertBtn">변환하기</button>
+
+    <div class="progress hidden" id="progress">
+      <div class="progress-bar" id="progressBar"></div>
+      <span id="progressText">변환 중...</span>
+    </div>
+
+    <div class="error hidden" id="errorBox"></div>
+
+    <a class="download-btn hidden" id="downloadBtn">⬇ 다운로드</a>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
