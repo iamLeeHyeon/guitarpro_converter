@@ -20,6 +20,7 @@ app.add_middleware(
 )
 
 ALLOWED_FORMATS = {"gp5", "gpx", "gp"}
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
 
 @app.get("/health")
@@ -32,12 +33,14 @@ async def convert(
     file: UploadFile = File(...),
     format: str = Form(default="gp5"),
 ):
-    if not file.filename.lower().endswith(".pdf"):
+    if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="PDF 파일만 지원합니다.")
     if format not in ALLOWED_FORMATS:
         raise HTTPException(status_code=400, detail=f"지원 포맷: {ALLOWED_FORMATS}")
 
-    pdf_bytes = await file.read()
+    pdf_bytes = await file.read(MAX_FILE_SIZE + 1)
+    if len(pdf_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="파일 크기는 20MB를 초과할 수 없습니다.")
 
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_in:
         tmp_in.write(pdf_bytes)
@@ -73,11 +76,19 @@ async def convert(
             detail="TAB 표기를 찾을 수 없습니다. TAB이 포함된 기타 악보 PDF를 업로드해주세요.",
         )
 
-    song = build_song(all_measures, guitar_info)
-    write_gp(song, output_path)
+    try:
+        song = build_song(all_measures, guitar_info)
+        write_gp(song, output_path)
+    except Exception:
+        try:
+            os.unlink(output_path)
+        except OSError:
+            pass
+        raise
 
-    original_stem = os.path.splitext(file.filename)[0]
-    download_name = f"{original_stem}.{format}"
+    safe_name = os.path.basename(file.filename or "output")
+    safe_stem = os.path.splitext(safe_name)[0]
+    download_name = f"{safe_stem}.{format}"
 
     def _cleanup():
         try:
