@@ -13,6 +13,7 @@ const downloadBtn = document.getElementById("downloadBtn");
 
 let selectedFile = null;
 let selectedFormat = "gp5";
+let currentObjectUrl = null;
 
 // 드래그앤드롭
 dropZone.addEventListener("click", () => fileInput.click());
@@ -60,13 +61,17 @@ convertBtn.addEventListener("click", async () => {
   try {
     const res = await fetch(`${API_BASE}/convert`, { method: "POST", body: formData });
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "변환 실패");
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `변환 실패 (HTTP ${res.status})`);
     }
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+    // 이전 URL 해제
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+    }
+    currentObjectUrl = URL.createObjectURL(blob);
     const stem = selectedFile.name.replace(/\.pdf$/i, "");
-    downloadBtn.href = url;
+    downloadBtn.href = currentObjectUrl;
     downloadBtn.download = `${stem}.${selectedFormat}`;
     setState("done");
   } catch (e) {
