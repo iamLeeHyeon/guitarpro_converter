@@ -1,16 +1,17 @@
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from backend.parser.pdf import PageData
 
 # 기타 줄 레이블 → string_idx (0=e high, 5=E low)
 _STRING_LABELS = {'e': 0, 'B': 1, 'G': 2, 'D': 3, 'A': 4, 'E': 5}
 _MIN_STRINGS = 4  # 최소 몇 줄이 있어야 TAB으로 인정
+_MAX_STRINGS = 8
 
 # TAB 라인 패턴: "e|---5---3---|" 형태
 _TAB_LINE_RE = re.compile(r'^([eBGDAE])\|([-0-9hpbBr/\\~^TtPM\s]+)\|?\s*$')
 
 # 주법 기호 패턴: 선택적 기호 + 숫자 + 선택적 기호
-_NOTE_RE = re.compile(r'([hpbBr/\\~^T]?)(\d+)([hpbBr/\\~^T]?)')
+_NOTE_RE = re.compile(r'([hpbBr/\\~^Tt]?)(\d+)([hpbBr/\\~^Tt]?)')
 
 # 팜뮤트 블록 패턴
 _PALM_MUTE_RE = re.compile(r'PM[-]+')
@@ -20,7 +21,7 @@ _PALM_MUTE_RE = re.compile(r'PM[-]+')
 class TabNote:
     string_idx: int   # 0=e(high), 5=E(low)
     fret: int
-    col: int          # 줄 내 문자 컬럼 (타이밍 프록시)
+    col: int          # 마디 내 상대 문자 위치 (타이밍 프록시, 마디 간 비교 불가)
     technique: str = ""
     palm_mute: bool = False
 
@@ -52,7 +53,7 @@ def parse_tab(page: PageData) -> list[list[TabNote]]:
 def _find_tab_block(lines: list[str], start: int) -> list[str] | None:
     """연속된 TAB 줄 블록(최소 4줄)을 찾아 반환."""
     candidate = []
-    for line in lines[start:start + 8]:
+    for line in lines[start:start + _MAX_STRINGS]:
         if _TAB_LINE_RE.match(line.strip()):
             candidate.append(line.strip())
         elif candidate:
@@ -88,6 +89,8 @@ def _parse_block(block: list[str]) -> list[list[TabNote]]:
             if measure_idx >= num_measures:
                 break
             is_palm_muted = bool(_PALM_MUTE_RE.search(segment))
+            # TODO: 5b7 형태에서 7은 벤드 목표 음정이나 현재 별도 TabNote로 생성됨.
+            # Task 5 GP 생성 시 벤드 처리에서 이 중복 노트를 제거해야 함.
             for match in _NOTE_RE.finditer(segment):
                 pre_tech = match.group(1)
                 fret = int(match.group(2))

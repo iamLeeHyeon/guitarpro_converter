@@ -64,3 +64,11 @@ def test_parse_tab_detects_slide():
     all_notes = [n for m in measures for n in m]
     slides = [n for n in all_notes if n.technique == '/']
     assert len(slides) >= 1
+
+def test_parse_tab_detects_palm_mute():
+    text = "e|PM-5-PM-3-|\nB|-----------|\nG|-----------|\nD|-----------|\nA|-----------|\nE|-----------|"
+    page = _make_page(text)
+    measures = parse_tab(page)
+    all_notes = [n for m in measures for n in m]
+    palm_muted = [n for n in all_notes if n.palm_mute]
+    assert len(palm_muted) >= 1
