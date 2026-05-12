@@ -23,8 +23,8 @@ _TUNING_PATTERNS: list[tuple[str, str]] = [
 
 _CAPO_RE = re.compile(r'capo\s*[:#]?\s*(\d+)', re.IGNORECASE)
 _TEMPO_BPM_RE = re.compile(r'(\d{2,3})\s*bpm', re.IGNORECASE)
-_TEMPO_MARK_RE = re.compile(r'[=♩]\s*(\d{2,3})')
-_TIME_SIG_RE = re.compile(r'\b([2-9])/([2-9])\b')
+_TEMPO_MARK_RE = re.compile(r'♩\s*=?\s*(\d{2,3})')
+_TIME_SIG_RE = re.compile(r'\b([2-9]|1[0-9])/(2|4|8|16)\b')
 _KEY_RE = re.compile(r'\bkey\s+of\s+([A-G][#b]?(?:\s*(?:major|minor|maj|min))?)', re.IGNORECASE)
 
 
